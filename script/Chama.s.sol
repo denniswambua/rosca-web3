@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity 0.8.28;
 
 import {Script, console} from "forge-std/Script.sol";
-import {Counter} from "../src/Counter.sol";
+import {Chama} from "../src/Chama.sol";
 
-contract CounterScript is Script {
-    Counter public counter;
+contract ChamaScript is Script {
+    Chama public chama;
 
     function setUp() public {}
 
     function run() public {
         vm.startBroadcast();
 
-        counter = new Counter();
+        chama = new Chama(3.156e7, 1e17);
 
         vm.stopBroadcast();
     }
