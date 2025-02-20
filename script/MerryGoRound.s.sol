@@ -2,18 +2,19 @@
 pragma solidity 0.8.28;
 
 import {Script, console} from "forge-std/Script.sol";
-import {Chama} from "../src/Chama.sol";
+import {MerryGoRound} from "../contracts/MerryGoRound.sol";
 
-contract ChamaScript is Script {
-    Chama public chama;
+contract MerryGoRoundScript is Script {
+    MerryGoRound public merrygoround;
 
     function setUp() public {}
 
     function run() public {
         vm.startBroadcast();
 
-        chama = new Chama(3.156e7, 1e17);
+        merrygoround = new MerryGoRound(3.156e7, 1e17);
 
         vm.stopBroadcast();
+
     }
 }

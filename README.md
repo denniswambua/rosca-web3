@@ -1,13 +1,18 @@
-## Foundry
+## Chama(investment) Smart Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+**This project implements common chama(investments) functions in smart contracts**
 
-Foundry consists of:
+## Functionalilty
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+### 1. Merry-go-round
+Members agree to contribute a fixed amount at each interval for a fixed period such as one year.
+
+### 2. Pooled investment with shares
+TODO
+### 3. Agriculture cooperatives
+TODO
+### 4. Peer-to-Peer Lending Chama
+TODO
 
 ## Documentation
 
@@ -48,7 +53,7 @@ $ anvil
 ### Deploy
 
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+$ forge script script/MerryGoRound.s.sol:MerryGoRoundScript --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
 
 ### Cast
