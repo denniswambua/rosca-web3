@@ -46,6 +46,7 @@ contract MerryGoRound is Ownable {
         s_minimum_contribution = _minimum_contribution;
         s_index_payout = 1;
         s_last_payout_timestamp = block.timestamp;
+        s_open = true;
     }
 
     function lock() public onlyOwner {
@@ -202,5 +203,16 @@ contract MerryGoRound is Ownable {
             }
             index += 1;
         }
+    }
+
+    function get_member_balance(address member) public view returns (uint256) {
+        if (s_members_index[member] == 0) {
+            revert MerryGoRound__Member_Not_Joined();
+        }
+        return s_contributions[s_members_index[member]];
+    }
+
+    function checkOpen() public view returns (bool) {
+        return s_open;
     }
 }

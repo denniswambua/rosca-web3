@@ -15,6 +15,5 @@ contract MerryGoRoundScript is Script {
         merrygoround = new MerryGoRound(3.156e7, 1e17);
 
         vm.stopBroadcast();
-
     }
 }
