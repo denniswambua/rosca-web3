@@ -23,6 +23,7 @@ contract MerryGoRound is Ownable {
     error MerryGoRound__Payout_Not_Open();
     error MerryGoRound__Cycle_Complete();
     error MerryGoRound__Member_Not_Joined();
+    error MerryGoRound__Transfer_Failed();
 
     address[] s_members; // List of all the MerryGoRound members.
     uint256 immutable s_duration; // The duration cycle of the MerryGoRound in seconds.
@@ -126,14 +127,18 @@ contract MerryGoRound is Ownable {
         if (s_contributions[member_index] <= 0) {
             revert MerryGoRound__Contribution_Not_Enough();
         }
-        if (amount < s_contributions[member_index]) {
+        if (amount > s_contributions[member_index]) {
             revert MerryGoRound__Contribution_Not_Enough();
         }
 
         s_contributions[member_index] -= amount;
 
         // Send eth to msg.sender
-        payable(msg.sender).transfer(amount);
+        (bool sent,) = payable(msg.sender).call{value: amount}("");
+
+        if (!sent) {
+            revert MerryGoRound__Transfer_Failed();
+        }
 
         // emit event
         emit MerryGoRound_Withdraw(msg.sender, amount);
@@ -205,11 +210,14 @@ contract MerryGoRound is Ownable {
         }
     }
 
-    function get_member_balance(address member) public view returns (uint256) {
-        if (s_members_index[member] == 0) {
+    /**
+     * @notice Member can check their balances
+     */
+    function get_balance() public view returns (uint256) {
+        if (s_members_index[msg.sender] == 0) {
             revert MerryGoRound__Member_Not_Joined();
         }
-        return s_contributions[s_members_index[member]];
+        return s_contributions[s_members_index[msg.sender]];
     }
 
     function checkOpen() public view returns (bool) {

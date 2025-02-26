@@ -6,11 +6,25 @@ import {MerryGoRound} from "../contracts/MerryGoRound.sol";
 
 contract MerryGoRoundTest is Test {
     MerryGoRound public merrygoround;
-    uint256 constant DURATION_IN_SECONDS = 3.156e7;
-    uint256 constant MINIMUM_CONTRIBUTION = 1e17;
+    uint256 constant DURATION_IN_SECONDS = 3.156e7; // one year
+    uint256 constant MINIMUM_CONTRIBUTION = 1 ether;
+    address owner;
 
     function setUp() public {
+        owner = msg.sender;
         merrygoround = new MerryGoRound(DURATION_IN_SECONDS, MINIMUM_CONTRIBUTION);
+    }
+
+    function test_can_join() public {
+        address member = address(1);
+        vm.deal(member, MINIMUM_CONTRIBUTION);
+        vm.prank(member);
+        merrygoround.join{value: MINIMUM_CONTRIBUTION}();
+
+        vm.prank(member);
+        uint256 member_balance = merrygoround.get_balance();
+
+        assert(member_balance == MINIMUM_CONTRIBUTION);
     }
 
     function test_cannot_join_if_locked() public {
@@ -33,5 +47,25 @@ contract MerryGoRoundTest is Test {
         vm.expectRevert(MerryGoRound.MerryGoRound__Amount_Is_Not_Enough.selector);
         vm.prank(member);
         merrygoround.join{value: MINIMUM_CONTRIBUTION - 1}();
+    }
+
+    function test_can_withdraw() public {
+        address member = address(1);
+        vm.deal(member, MINIMUM_CONTRIBUTION);
+        vm.prank(member);
+        merrygoround.join{value: MINIMUM_CONTRIBUTION}();
+
+        vm.prank(member);
+        uint256 member_balance = merrygoround.get_balance();
+        assert(member_balance == MINIMUM_CONTRIBUTION);
+
+        uint256 withdraw_amount = 1 gwei;
+        vm.prank(member);
+        merrygoround.withdraw(withdraw_amount);
+
+        vm.prank(member);
+        uint256 new_member_balance = merrygoround.get_balance();
+        assert(member_balance - withdraw_amount == new_member_balance);
+        assert(member.balance == withdraw_amount);
     }
 }

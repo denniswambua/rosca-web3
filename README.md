@@ -5,7 +5,7 @@
 ## Functionalilty
 
 ### 1. Merry-go-round
-Members agree to contribute a fixed amount at each interval for a fixed period such as one year.
+Members agree to contribute a fixed amount at each interval for a fixed period.
 
 ### 2. Pooled investment with shares
 TODO
@@ -20,22 +20,27 @@ https://book.getfoundry.sh/
 
 ## Usage
 
+### Install lib
+```shell
+$ make install
+```
+
 ### Build
 
 ```shell
-$ forge build
+$ make build
 ```
 
 ### Test
 
 ```shell
-$ forge test
+$ make tests
 ```
 
 ### Format
 
 ```shell
-$ forge fmt
+$ make format
 ```
 
 ### Gas Snapshots
