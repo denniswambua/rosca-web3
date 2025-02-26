@@ -23,6 +23,10 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
+      - name: Install Libs
+        run: |
+          make install
+
       - name: Show Forge version
         run: |
           forge --version
@@ -39,5 +43,5 @@ jobs:
 
       - name: Run Forge tests
         run: |
-          forge test -vvv
+          make tests 
         id: test
