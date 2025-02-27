@@ -16,9 +16,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  *   The risk of this arrangement is that members who are early in the payout rotation have an incentive to drop out of the MerryGoRound after they have been paid
  */
 contract MerryGoRound is Ownable {
-    error MerryGoRound__Not_Open();
+    error MerryGoRound__Not_Active();
     error MerryGoRound__Invalid_Address();
-    error MerryGoRound__Amount_Is_Not_Enough();
     error MerryGoRound__Contribution_Not_Enough();
     error MerryGoRound__Payout_Not_Open();
     error MerryGoRound__Cycle_Complete();
@@ -28,14 +27,14 @@ contract MerryGoRound is Ownable {
     address[] s_members; // List of all the MerryGoRound members.
     uint256 immutable s_duration; // The duration cycle of the MerryGoRound in seconds.
     uint256 immutable s_minimum_contribution; // MerryGoRound minimum periodic contribution.
-    bool s_open; // MerryGoRound open to add new members.
+    bool s_is_active; // MerryGoRound open to add new members.
     uint256 s_index_payout; // Tracks member payouts.
     uint256 s_last_payout_timestamp;
 
+    address s_owner;
+
     mapping(address => uint256) s_members_index; // Stores member address index in member array.
     mapping(uint256 => uint256) s_contributions; // Stores member contribution.
-    mapping(uint256 => uint256) s_arrears; // Stores member arrears.
-    mapping(uint256 => uint256) s_payout_balances; // Stores the members pending payouts.
 
     event MerryGoRound_Deposit(address indexed member, uint256 value);
     event MerryGoRound_Join(address indexed member, uint256 index);
@@ -47,11 +46,22 @@ contract MerryGoRound is Ownable {
         s_minimum_contribution = _minimum_contribution;
         s_index_payout = 1;
         s_last_payout_timestamp = block.timestamp;
-        s_open = true;
+        s_is_active = false;
+        s_owner = msg.sender;
     }
 
-    function lock() public onlyOwner {
-        s_open = false;
+    /**
+     * @notice Only owner can activate the MerryGoRound by contributing the minimum contribution and being the first member. 
+     */
+    function activate() public payable onlyOwner {
+        if (msg.value < s_minimum_contribution) {
+            revert MerryGoRound__Contribution_Not_Enough();
+        }
+        s_members.push(msg.sender);
+        uint256 member_index = s_members.length;
+        s_members_index[msg.sender] = member_index;
+        s_contributions[member_index] += msg.value;
+        s_is_active = true;
     }
 
     /**
@@ -63,27 +73,17 @@ contract MerryGoRound is Ownable {
             revert MerryGoRound__Invalid_Address();
         }
 
+        if (!s_is_active) {
+            revert MerryGoRound__Not_Active();
+        }
+
         if (s_members_index[msg.sender] == 0) {
             revert MerryGoRound__Member_Not_Joined();
         }
         uint256 member_index = s_members_index[msg.sender];
 
-        if (s_arrears[member_index] > 0) {
-            uint256 arrears = s_arrears[member_index];
-            if (msg.value > s_arrears[member_index]) {
-                // Clear arrears first
-                uint256 balance = msg.value - arrears;
-                s_arrears[member_index] = 0;
-                s_contributions[member_index] += balance;
-            } else {
-                s_arrears[member_index] -= msg.value;
-            }
-
-            _distribute_arrears(arrears);
-        } else {
-            s_contributions[member_index] += msg.value;
-        }
-
+        s_contributions[member_index] += msg.value;
+        
         // emit event
         emit MerryGoRound_Deposit(msg.sender, msg.value);
     }
@@ -96,10 +96,10 @@ contract MerryGoRound is Ownable {
             revert MerryGoRound__Invalid_Address();
         }
         if (msg.value < s_minimum_contribution) {
-            revert MerryGoRound__Amount_Is_Not_Enough();
+            revert MerryGoRound__Contribution_Not_Enough();
         }
-        if (!s_open) {
-            revert MerryGoRound__Not_Open();
+        if (!s_is_active) {
+            revert MerryGoRound__Not_Active();
         }
         s_members.push(msg.sender);
         uint256 member_index = s_members.length;
@@ -146,13 +146,14 @@ contract MerryGoRound is Ownable {
 
     /**
      *  @notice After the payout period has passed, the owner can distribute the contribution to the eligible member.
-     * Members with contribution less than minimum contribution are added to the arrears.
-     * Todo:
+     *  Members with contribution less than minimum contribution payout function reverts and payout fails.
+     *  Payout only works when all members have contributed for that period.
+     *  Todo:
      *     Automate this using chain link automate.
      */
     function payout() public onlyOwner {
-        if (!s_open) {
-            revert MerryGoRound__Not_Open();
+        if (!s_is_active) {
+            revert MerryGoRound__Not_Active();
         }
 
         if (block.timestamp - s_last_payout_timestamp < s_duration) {
@@ -172,11 +173,8 @@ contract MerryGoRound is Ownable {
                 s_contributions[i] -= s_minimum_contribution;
                 payout_amount += s_minimum_contribution;
             } else {
-                uint256 balance = s_minimum_contribution - s_contributions[i];
-                s_arrears[i] += balance;
-                s_payout_balances[s_index_payout] += balance;
-                payout_amount += s_contributions[i];
-                s_contributions[i] = 0;
+                // Payout fails and reverts.
+                revert MerryGoRound__Contribution_Not_Enough();
             }
         }
 
@@ -191,26 +189,6 @@ contract MerryGoRound is Ownable {
     }
 
     /**
-     * @dev Distributes the arrears to the pending payouts.
-     */
-    function _distribute_arrears(uint256 arrears) internal {
-        uint256 index = 1;
-        while (arrears > 0 && index < s_members.length) {
-            if (s_payout_balances[index] > 0) {
-                if (s_payout_balances[index] > arrears) {
-                    s_payout_balances[index] -= arrears;
-                    s_contributions[index] += arrears;
-                    arrears = 0;
-                } else {
-                    arrears -= s_payout_balances[index];
-                    s_contributions[index] += s_payout_balances[index];
-                }
-            }
-            index += 1;
-        }
-    }
-
-    /**
      * @notice Member can check their balances
      */
     function get_balance() public view returns (uint256) {
@@ -220,7 +198,15 @@ contract MerryGoRound is Ownable {
         return s_contributions[s_members_index[msg.sender]];
     }
 
-    function checkOpen() public view returns (bool) {
-        return s_open;
+    function checkActive() public view returns (bool) {
+        return s_is_active;
+    }
+
+    function get_next_payout_member() public view returns (address) {
+        return s_members[s_index_payout];
+    }
+
+    function get_owner() public view returns (address) {
+        return s_owner;
     }
 }
