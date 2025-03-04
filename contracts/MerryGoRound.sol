@@ -20,7 +20,7 @@ contract MerryGoRound is Ownable {
     error MerryGoRound__Invalid_Address();
     error MerryGoRound__Contribution_Not_Enough();
     error MerryGoRound__Payout_Not_Open();
-    error MerryGoRound__Cycle_Complete();
+    error MerryGoRound__Not_Started_or_Cycle_Complete();
     error MerryGoRound__Member_Not_Joined();
     error MerryGoRound__Transfer_Failed();
 
@@ -40,27 +40,29 @@ contract MerryGoRound is Ownable {
     event MerryGoRound_Join(address indexed member, uint256 index);
     event MerryGoRound_Withdraw(address indexed member, uint256 value);
     event MerryGoRound_Payout(address indexed member, uint256 value);
+    event MerryGoRound_Disburse(address indexed member, uint256 value);
 
     constructor(uint256 _duration, uint256 _minimum_contribution) Ownable(msg.sender) {
         s_duration = _duration;
         s_minimum_contribution = _minimum_contribution;
-        s_index_payout = 1;
         s_last_payout_timestamp = block.timestamp;
         s_is_active = false;
         s_owner = msg.sender;
+        s_members.push(address(0));
     }
 
     /**
-     * @notice Only owner can activate the MerryGoRound by contributing the minimum contribution and being the first member. 
+     * @notice Only owner can activate the MerryGoRound by contributing the minimum contribution and being the first member.
      */
     function activate() public payable onlyOwner {
         if (msg.value < s_minimum_contribution) {
             revert MerryGoRound__Contribution_Not_Enough();
         }
         s_members.push(msg.sender);
-        uint256 member_index = s_members.length;
+        uint256 member_index = s_members.length - 1;
         s_members_index[msg.sender] = member_index;
         s_contributions[member_index] += msg.value;
+        s_index_payout = member_index;
         s_is_active = true;
     }
 
@@ -83,7 +85,7 @@ contract MerryGoRound is Ownable {
         uint256 member_index = s_members_index[msg.sender];
 
         s_contributions[member_index] += msg.value;
-        
+
         // emit event
         emit MerryGoRound_Deposit(msg.sender, msg.value);
     }
@@ -102,7 +104,7 @@ contract MerryGoRound is Ownable {
             revert MerryGoRound__Not_Active();
         }
         s_members.push(msg.sender);
-        uint256 member_index = s_members.length;
+        uint256 member_index = s_members.length - 1;
         s_members_index[msg.sender] = member_index;
         s_contributions[member_index] += msg.value;
 
@@ -160,25 +162,32 @@ contract MerryGoRound is Ownable {
             revert MerryGoRound__Payout_Not_Open();
         }
 
-        if (s_index_payout > s_members.length) {
-            revert MerryGoRound__Cycle_Complete();
+        if (s_index_payout > s_members.length || s_members.length == 2) {
+            revert MerryGoRound__Not_Started_or_Cycle_Complete();
         }
 
         s_last_payout_timestamp = block.timestamp;
 
-        address receiver = s_members[s_index_payout];
         uint256 payout_amount = 0;
-        for (uint256 i = s_index_payout + 1; i < s_members.length; i++) {
+        // Starting at index 1 as index 0 is the default address(0)
+        for (uint256 i = 1; i < s_members.length; i++) {
+            if (i == s_index_payout) {
+                // Member receiving payout wont contribute
+                continue;
+            }
             if (s_contributions[i] >= s_minimum_contribution) {
                 s_contributions[i] -= s_minimum_contribution;
                 payout_amount += s_minimum_contribution;
+
+                emit MerryGoRound_Disburse(s_members[i], s_minimum_contribution);
             } else {
                 // Payout fails and reverts.
                 revert MerryGoRound__Contribution_Not_Enough();
             }
         }
 
-        s_contributions[s_index_payout] = payout_amount;
+        s_contributions[s_index_payout] += payout_amount;
+        address receiver = s_members[s_index_payout];
         s_last_payout_timestamp = block.timestamp;
 
         // Goes not the next elligible member.
@@ -208,5 +217,9 @@ contract MerryGoRound is Ownable {
 
     function get_owner() public view returns (address) {
         return s_owner;
+    }
+
+    function get_members_count() public view returns (uint256) {
+        return s_members.length - 1;
     }
 }
