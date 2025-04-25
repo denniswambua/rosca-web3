@@ -126,10 +126,7 @@ contract Rosca is Ownable {
 
         uint256 member_index = s_members_index[msg.sender];
 
-        if (s_contributions[member_index] <= 0) {
-            revert Rosca__Contribution_Not_Enough();
-        }
-        if (amount > s_contributions[member_index]) {
+        if (s_contributions[member_index] <= 0 || amount > s_contributions[member_index]) {
             revert Rosca__Contribution_Not_Enough();
         }
 
