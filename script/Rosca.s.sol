@@ -2,17 +2,17 @@
 pragma solidity 0.8.28;
 
 import {Script, console} from "forge-std/Script.sol";
-import {MerryGoRound} from "../contracts/MerryGoRound.sol";
+import {Rosca} from "../contracts/Rosca.sol";
 
-contract MerryGoRoundScript is Script {
-    MerryGoRound public merrygoround;
+contract RoscaScript is Script {
+    Rosca public rosca;
 
     function setUp() public {}
 
     function run() public {
         vm.startBroadcast();
 
-        merrygoround = new MerryGoRound(3.156e7, 1e17);
+        rosca = new Rosca(3.156e7, 1e17);
 
         vm.stopBroadcast();
     }

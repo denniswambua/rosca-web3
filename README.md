@@ -1,18 +1,7 @@
-## Chama(investment) Smart Contracts
+## Rotating Savings and Credit Association (ROSCA) Smart Contracts
 
-**This project implements common chama(investments) functions in smart contracts**
+**This project implements common ROSCA functions in smart contracts**
 
-## Functionalilty
-
-### 1. Merry-go-round
-Members agree to contribute a fixed amount at each interval for a fixed period.
-
-### 2. Pooled investment with shares
-TODO
-### 3. Agriculture cooperatives
-TODO
-### 4. Peer-to-Peer Lending Chama
-TODO
 
 ## Documentation
 
